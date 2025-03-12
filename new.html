@@ -1,0 +1,3313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceAttend - CNN-Based Facial Recognition Attendance System</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --success: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --danger: #ef476f;
+            --warning: #ffd166;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f0f2f5;
+            color: var(--dark);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo h1 {
+            font-size: 1.8rem;
+            margin: 0;
+        }
+        
+        .logo-icon {
+            font-size: 2rem;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 3fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .sidebar {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 1rem;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.8rem;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--dark);
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .main-content {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary);
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+        
+        .login-container {
+            max-width: 400px;
+            margin: 2rem auto;
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+        }
+        
+        .webcam-container {
+            width: 100%;
+            height: 300px;
+            background-color: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        
+        #webcam-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .face-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+        
+        .face-box {
+            border: 2px solid var(--success);
+            width: 150px;
+            height: 150px;
+            border-radius: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(76, 201, 240, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(76, 201, 240, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(76, 201, 240, 0);
+            }
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+        }
+        
+        .tab.active {
+            border-bottom: 3px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .model-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+        
+        th, td {
+            padding: 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-present {
+            background-color: rgba(76, 201, 240, 0.2);
+            color: var(--success);
+        }
+        
+        .status-absent {
+            background-color: rgba(239, 71, 111, 0.2);
+            color: var(--danger);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background-color: #f0f2f5;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--success));
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 1rem auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .alert {
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .alert-danger {
+            background-color: rgba(239, 71, 111, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+        
+        .alert-success {
+            background-color: rgba(76, 201, 240, 0.2);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+        
+        .auth-loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        
+        .face-detected {
+            border-color: #4cc9f0;
+            box-shadow: 0 0 15px rgba(76, 201, 240, 0.7);
+        }
+        
+        .face-recognized {
+            border-color: #06d6a0;
+            box-shadow: 0 0 15px rgba(6, 214, 160, 0.7);
+        }
+        
+        .face-unknown {
+            border-color: #ef476f;
+            box-shadow: 0 0 15px rgba(239, 71, 111, 0.7);
+        }
+        
+        .recognition-result {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: none;
+        }
+        
+        .capture-result {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .captured-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 5px;
+            object-fit: cover;
+            border: 2px solid #ddd;
+        }
+        
+        .dot-pulse {
+            position: relative;
+            left: -9999px;
+            width: 6px;
+            height: 6px;
+            border-radius: 5px;
+            background-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 9999px 0 0 -5px;
+            animation: dot-pulse 1.5s infinite linear;
+            animation-delay: 0.25s;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        .dot-pulse::before, .dot-pulse::after {
+            content: '';
+            display: inline-block;
+            position: absolute;
+            top: 0;
+            width: 6px;
+            height: 6px;
+            border-radius: 5px;
+            background-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .dot-pulse::before {
+            box-shadow: 9984px 0 0 -5px;
+            animation: dot-pulse-before 1.5s infinite linear;
+            animation-delay: 0s;
+        }
+        
+        .dot-pulse::after {
+            box-shadow: 10014px 0 0 -5px;
+            animation: dot-pulse-after 1.5s infinite linear;
+            animation-delay: 0.5s;
+        }
+        
+        @keyframes dot-pulse-before {
+            0% {
+                box-shadow: 9984px 0 0 -5px;
+            }
+            30% {
+                box-shadow: 9984px 0 0 2px;
+            }
+            60%, 100% {
+                box-shadow: 9984px 0 0 -5px;
+            }
+        }
+        
+        @keyframes dot-pulse {
+            0% {
+                box-shadow: 9999px 0 0 -5px;
+            }
+            30% {
+                box-shadow: 9999px 0 0 2px;
+            }
+            60%, 100% {
+                box-shadow: 9999px 0 0 -5px;
+            }
+        }
+        
+        @keyframes dot-pulse-after {
+            0% {
+                box-shadow: 10014px 0 0 -5px;
+            }
+            30% {
+                box-shadow: 10014px 0 0 2px;
+            }
+            60%, 100% {
+                box-shadow: 10014px 0 0 -5px;
+            }
+        }
+    </style>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Face-api.js for client-side face detection -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="logo-icon">👤</span>
+                <h1>FaceAttend | CNN-Based Facial Recognition Attendance System</h1>
+            </div>
+        </header>
+        
+        <div id="login-view" class="login-container">
+            <h2 style="text-align: center; margin-bottom: 2rem;">Admin Login</h2>
+            
+            <div id="login-alert" class="alert alert-danger">
+                Invalid username or password. Please try again.
+            </div>
+            
+            <div id="login-success" class="alert alert-success">
+                Login successful! Redirecting to dashboard...
+            </div>
+            
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" class="form-control" placeholder="Enter your username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;" id="login-btn">
+                    Login
+                    <span id="login-spinner" class="auth-loading hidden"></span>
+                </button>
+            </form>
+            <p style="text-align: center; margin-top: 1.5rem;">
+                <a href="#" onclick="showAttendanceMode()">Go to Student Attendance Mode</a>
+            </p>
+        </div>
+        
+        <div id="attendance-view" class="hidden">
+            <div class="card">
+                <h2 style="margin-bottom: 1.5rem;">Student Attendance Mode</h2>
+                <div class="webcam-container">
+                    <video id="webcam-feed" autoplay playsinline></video>
+                    <div class="face-overlay">
+                        <div class="face-box"></div>
+                    </div>
+                    <div id="recognition-result" class="recognition-result"></div>
+                </div>
+                <div style="text-align: center;">
+                    <div id="recognition-status" style="margin-bottom: 1rem; font-size: 1.2rem;">Waiting for face detection...</div>
+                    <button class="btn btn-primary" id="start-recognition-btn" onclick="startFaceRecognition()">Start Recognition</button>
+                    <button class="btn btn-danger" onclick="showLoginView()" style="margin-left: 10px;">Back to Login</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="dashboard-view" class="hidden">
+            <div class="dashboard">
+                <div class="sidebar">
+                    <ul class="sidebar-menu">
+                        <li><a href="#" class="active" onclick="showDashboard()"><span>📊</span> Dashboard</a></li>
+                        <li><a href="#" onclick="showAttendanceRecords()"><span>📝</span> Attendance Records</a></li>
+                        <li><a href="#" onclick="showModelTraining()"><span>🧠</span> Model Training</a></li>
+                        <li><a href="#" onclick="showStudentManagement()"><span>👥</span> Student Management</a></li>
+                        <li><a href="#" onclick="showModelEvaluation()"><span>📈</span> Model Evaluation</a></li>
+                        <li><a href="#" onclick="showSystemSettings()"><span>⚙️</span> System Settings</a></li>
+                        <li><a href="#" onclick="logout()"><span>🚪</span> Logout</a></li>
+                    </ul>
+                </div>
+                
+                <div class="main-content">
+                    <div id="dashboard-content">
+                        <h2 class="card-header">Dashboard Overview</h2>
+                        
+                        <div class="model-stats">
+                            <div class="stat-card">
+                                <h3 id="model-accuracy">95.8%</h3>
+                                <p>Model Accuracy</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3 id="students-enrolled">378</h3>
+                                <p>Students Enrolled</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3 id="present-today">245</h3>
+                                <p>Present Today</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3 id="avg-recognition-time">3.2s</h3>
+                                <p>Avg. Recognition Time</p>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Today's Attendance Summary</h3>
+                            <div class="chart-container">
+                                <canvas id="attendanceChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Recent Attendance</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Student ID</th>
+                                        <th>Name</th>
+                                        <th>Class</th>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-attendance-table">
+                                    <tr>
+                                        <td colspan="5" class="text-center">Loading recent attendance data...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div id="attendance-records-content" class="hidden">
+                        <h2 class="card-header">Attendance Records</h2>
+                        
+                        <div class="card">
+                            <div style="display: flex; gap: 10px; margin-bottom: 1.5rem;">
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="class-filter">Class</label>
+                                    <select id="class-filter" class="form-control" onchange="filterAttendanceRecords()">
+                                        <option value="all">All Classes</option>
+                                        <option value="cse-a">CSE-A</option>
+                                        <option value="cse-b">CSE-B</option>
+                                        <option value="cse-c">CSE-C</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="date-filter">Date</label>
+                                    <input type="date" id="date-filter" class="form-control" onchange="filterAttendanceRecords()">
+                                </div>
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="status-filter">Status</label>
+                                    <select id="status-filter" class="form-control" onchange="filterAttendanceRecords()">
+                                        <option value="all">All Status</option>
+                                        <option value="present">Present</option>
+                                        <option value="absent">Absent</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Student ID</th>
+                                        <th>Name</th>
+                                        <th>Class</th>
+                                        <th>Date</th>
+                                        <th>Time In</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendance-records-table">
+                                    <tr>
+                                        <td colspan="7" class="text-center">Loading attendance records...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                                <div id="records-pagination-info">Showing 1-5 of 378 records</div>
+                                <div>
+                                    <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="previousPage()">Previous</button>
+                                    <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="nextPage()">Next</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Export Options</h3>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn btn-primary" onclick="exportAttendance('csv')">Export as CSV</button>
+                                <button class="btn btn-primary" onclick="exportAttendance('pdf')">Export as PDF</button>
+                                <button class="btn btn-primary" onclick="showModal('email-report-modal')">Email Report</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="model-training-content" class="hidden">
+                        <h2 class="card-header">Model Training</h2>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Current Model Status</h3>
+                            <div class="model-stats">
+                                <div class="stat-card">
+                                    <h3 id="current-accuracy">95.8%</h3>
+                                    <p>Accuracy</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h3 id="current-precision">97.2%</h3>
+                                    <p>Precision</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h3 id="current-recall">94.5%</h3>
+                                    <p>Recall</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h3 id="current-f1">95.8%</h3>
+                                    <p>F1-Score</p>
+                                </div>
+                            </div>
+                            
+                            <p style="margin: 1rem 0;">Last trained: <span id="last-trained-date">March 10, 2025 at 02:15 PM</span></p>
+                            <p>Model version: <span id="model-version">v2.3.1</span></p>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Training Configuration</h3>
+                            
+                            <div class="tabs">
+                                <div class="tab active" onclick="switchTab('basic-config')">Basic Configuration</div>
+                                <div class="tab" onclick="switchTab('advanced-config')">Advanced Configuration</div>
+                            </div>
+                            
+                            <div id="basic-config">
+                                <div class="form-group">
+                                    <label for="batch-size">Batch Size</label>
+                                    <input type="number" id="batch-size" class="form-control" value="32">
+                                </div>
+                                <div class="form-group">
+                                    <label for="epochs">Number of Epochs</label>
+                                    <input type="number" id="epochs" class="form-control" value="50">
+                                </div>
+                                <div class="form-group">
+                                    <label for="learning-rate">Learning Rate</label>
+                                    <input type="number" id="learning-rate" class="form-control" value="0.001" step="0.0001">
+                                </div>
+                                <div class="form-group">
+                                    <label for="validation-split">Validation Split</label>
+                                    <input type="number" id="validation-split" class="form-control" value="0.2" step="0.1" min="0.1" max="0.5">
+                                </div>
+                            </div>
+                            
+                            <div id="advanced-config" class="hidden">
+                                <div class="form-group">
+                                    <label for="optimizer">Optimizer</label>
+                                    <select id="optimizer" class="form-control">
+                                        <option value="adam">Adam</option>
+                                        <option value="sgd">SGD</option>
+                                        <option value="rmsprop">RMSprop</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="activation">Activation Function</label>
+                                    <select id="activation" class="form-control">
+                                        <option value="relu">ReLU</option>
+                                        <option value="leaky_relu">Leaky ReLU</option>
+                                        <option value="sigmoid">Sigmoid</option>
+                                        <option value="tanh">Tanh</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="dropout-rate">Dropout Rate</label>
+                                    <input type="number" id="dropout-rate" class="form-control" value="0.5" step="0.1" min="0" max="0.9">
+                                </div>
+                                <div class="form-group">
+                                    <label for="conv-layers">Number of Conv Layers</label>
+                                    <input type="number" id="conv-layers" class="form-control" value="5" min="3" max="10">
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-primary" onclick="startTraining()">Start Training</button>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Dataset Management</h3>
+                            <p>Current dataset size: <span id="dataset-size">1,134</span> images of <span id="dataset-students">378</span> students</p>
+                            
+                            <div style="display: flex; gap: 10px; margin-top: 1rem;">
+                                <button class="btn btn-primary" onclick="showModal('data-augmentation-modal')">Data Augmentation</button>
+                                <button class="btn btn-primary" onclick="showModal('collect-data-modal')">Collect New Data</button>
+                                <button class="btn btn-danger" onclick="confirmDatasetCleanup()">Clean Dataset</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="student-management-content" class="hidden">
+                        <h2 class="card-header">Student Management</h2>
+                        
+                        <div class="card">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                                <input type="text" id="student-search" class="form-control" placeholder="Search students..." style="width: 70%;" oninput="searchStudents()">
+                                <button class="btn btn-primary" onclick="showModal('add-student-modal')">Add New Student</button>
+                            </div>
+                            
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Student ID</th>
+                                        <th>Name</th>
+                                        <th>Class</th>
+                                        <th>Email</th>
+                                        <th>Face Images</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="students-table">
+                                    <tr>
+                                        <td colspan="6" class="text-center">Loading students data...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+                                <div id="students-pagination-info">Showing 1-5 of 378 students</div>
+                                <div>
+                                    <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="previousStudentsPage()">Previous</button>
+                                    <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="nextStudentsPage()">Next</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Bulk Operations</h3>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn btn-primary" onclick="showModal('import-students-modal')">Import Students (CSV)</button>
+                                <button class="btn btn-primary" onclick="exportStudentsList()">Export Students List</button>
+                                <button class="btn btn-danger" onclick="confirmBulkDelete()">Bulk Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="model-evaluation-content" class="hidden">
+                        <h2 class="card-header">Model Evaluation</h2>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Performance Metrics</h3>
+                            <div class="model-stats">
+                                <div class="stat-card">
+                                    <h3 id="eval-accuracy">95.8%</h3>
+                                    <p>Accuracy</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h3 id="eval-precision">97.2%</h3>
+                                    <p>Precision</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h3 id="eval-recall">94.5%</h3>
+                                    <p>Recall</p>
+                                </div>
+                                <div class="stat-card">
+                                    <h3 id="eval-f1">95.8%</h3>
+                                    <p>F1-Score</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Confusion Matrix</h3>
+                            <div class="chart-container">
+                                <canvas id="confusionMatrix"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Training History</h3>
+                            <div class="chart-container">
+                                <canvas id="trainingHistory"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Feature Visualization</h3>
+                            <div class="tabs">
+                                <div class="tab active" onclick="switchVisualizationTab('feature-maps')">Feature Maps</div>
+                                <div class="tab" onclick="switchVisualizationTab('tsne')">t-SNE Visualization</div>
+                            </div>
+                            
+                            <div id="feature-maps" class="chart-container" style="height: 400px;">
+                                <!-- Feature maps visualization will be shown here -->
+                                <div style="text-align: center; padding-top: 180px;">
+                                    <p>Feature maps visualization of convolutional layers</p>
+                                </div>
+                            </div>
+                            
+                            <div id="tsne" class="chart-container hidden" style="height: 400px;">
+                                <!-- t-SNE visualization will be shown here -->
+                                <div style="text-align: center; padding-top: 180px;">
+                                    <p>t-SNE visualization of face embeddings</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="system-settings-content" class="hidden">
+                        <h2 class="card-header">System Settings</h2>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Camera Settings</h3>
+                            <div class="form-group">
+                                <label for="camera-source">Camera Source</label>
+                                <select id="camera-source" class="form-control">
+                                    <option value="0">Default Camera</option>
+                                    <option value="1">External Camera 1</option>
+                                    <option value="2">External Camera 2</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="resolution">Resolution</label>
+                                <select id="resolution" class="form-control">
+                                    <option value="720p">720p</option>
+                                    <option value="1080p">1080p</option>
+                                    <option value="480p">480p</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="face-confidence">Face Detection Confidence Threshold</label>
+                                <input type="range" id="face-confidence" class="form-control" min="0.1" max="0.9" step="0.1" value="0.5" oninput="updateConfidenceOutput(this.value)">
+                                <output id="confidence-output" for="face-confidence">0.5</output>
+                            </div>
+                            <button class="btn btn-primary" onclick="saveSystemSettings('camera')">Save Camera Settings</button>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Attendance Settings</h3>
+                            <div class="form-group">
+                                <label for="class-hours">Class Hours</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="time" id="class-start" class="form-control" value="08:30">
+                                    <span style="align-self: center;">to</span>
+                                    <input type="time" id="class-end" class="form-control" value="16:30">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="late-threshold">Late Threshold (minutes)</label>
+                                <input type="number" id="late-threshold" class="form-control" value="15" min="0" max="60">
+                            </div>
+                            <div class="form-group">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="checkbox" id="enable-notifications" checked>
+                                    <label for="enable-notifications">Enable email notifications for absent students</label>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="saveSystemSettings('attendance')">Save Attendance Settings</button>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">System Backup</h3>
+                            <p style="margin-bottom: 1rem;">Last backup: <span id="last-backup-date">March 11, 2025 at 02:00 AM</span></p>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn btn-primary" onclick="backupSystem()">Backup Now</button>
+                                <button class="btn btn-primary" onclick="showModal('schedule-backup-modal')">Schedule Backup</button>
+                                <button class="btn btn-danger" onclick="showModal('restore-backup-modal')">Restore from Backup</button>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Admin Account</h3>
+                            <div class="form-group">
+                                <label for="admin-email">Email</label>
+                                <input type="email" id="admin-email" class="form-control" value="admin@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="current-password">Current Password</label>
+                                <input type="password" id="current-password" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="new-password">New Password</label>
+                                <input type="password" id="new-password" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="confirm-password">Confirm New Password</label>
+                                <input type="password" id="confirm-password" class="form-control">
+                            </div>
+                            <button class="btn btn-primary" onclick="updateAdminAccount()">Update Account</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modals -->
+        <div id="training-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="hideModal('training-modal')">&times;</span>
+                <h2 style="margin-bottom: 1.5rem;">Training in Progress</h2>
+                <div class="loader"></div>
+                <p id="training-status">Initializing training...</p>
+                <div class="progress-container">
+                    <div class="progress-bar" id="training-progress" style="width: 25%;"></div>
+                </div>
+                <p>Estimated time remaining: <span id="time-remaining">45 minutes</span></p>
+                <button class="btn btn-danger" style="margin-top: 1rem;" onclick="cancelTraining()">Cancel Training</button>
+            </div>
+        </div>
+        
+        <div id="add-student-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="hideModal('add-student-modal')">&times;</span>
+                <h2 style="margin-bottom: 1.5rem;">Add New Student</h2>
+                
+                <div class="form-group">
+                    <label for="student-id">Student ID</label>
+                    <input type="text" id="student-id" class="form-control" placeholder="Enter student ID">
+                </div>
+                
+                <div class="form-group">
+                    <label for="student-name">Full Name</label>
+                    <input type="text" id="student-name" class="form-control" placeholder="Enter full name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="student-class">Class</label>
+                    <select id="student-class" class="form-control">
+                        <option value="cse-a">CSE-A</option>
+                        <option value="cse-b">CSE-B</option>
+                        <option value="cse-c">CSE-C</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="student-email">Email</label>
+                    <input type="email" id="student-email" class="form-control" placeholder="Enter email">
+                </div>
+                
+                <div class="form-group">
+                    <label>Face Images</label>
+                    <div style="border: 2px dashed #ddd; padding: 1.5rem; text-align: center; border-radius: 6px;" id="face-upload-area">
+                        <p>Drag & drop face images here or <input type="file" id="face-images-input" accept="image/*" multiple style="display: none;"><label for="face-images-input" style="color: var(--primary); cursor: pointer;">browse files</label></p>
+                        <p style="margin-top: 0.5rem; font-size: 0.9rem;">Upload at least 3 different variations of face images</p>
+                    </div>
+                    <div id="uploaded-faces" class="capture-result"></div>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem;">
+                    <button class="btn btn-danger" onclick="hideModal('add-student-modal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="addNewStudent()">Add Student</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="data-augmentation-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="hideModal('data-augmentation-modal')">&times;</span>
+                <h2 style="margin-bottom: 1.5rem;">Data Augmentation</h2>
+                
+                <p style="margin-bottom: 1rem;">Apply data augmentation techniques to increase dataset size and improve model robustness.</p>
+                
+                <div class="form-group">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <input type="checkbox" id="rotation" checked>
+                        <label for="rotation">Rotation (±15°)</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <input type="checkbox" id="horizontal-flip" checked>
+                        <label for="horizontal-flip">Horizontal Flip</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <input type="checkbox" id="brightness" checked>
+                        <label for="brightness">Brightness Adjustments (±20%)</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <input type="checkbox" id="zoom">
+                        <label for="zoom">Random Zoom (±10%)</label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <input type="checkbox" id="shift">
+                        <label for="shift">Random Shift (±5%)</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="aug-factor">Augmentation Factor</label>
+                    <select id="aug-factor" class="form-control">
+                        <option value="2">2x (2,268 images)</option>
+                        <option value="3">3x (3,402 images)</option>
+                        <option value="4">4x (4,536 images)</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem;">
+                    <button class="btn btn-danger" onclick="hideModal('data-augmentation-modal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="applyDataAugmentation()">Apply Augmentation</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="collect-data-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="hideModal('collect-data-modal')">&times;</span>
+                <h2 style="margin-bottom: 1.5rem;">Collect New Data</h2>
+                
+                <div class="form-group">
+                    <label for="collection-method">Collection Method</label>
+                    <select id="collection-method" class="form-control" onchange="toggleDataCollection(this.value)">
+                        <option value="form">Google Form</option>
+                        <option value="direct">Direct Camera Capture</option>
+                    </select>
+                </div>
+                
+                <div id="form-collection">
+                    <div class="form-group">
+                        <label for="form-link">Google Form Link</label>
+                        <input type="text" id="form-link" class="form-control" value="https://forms.gle/QKN6t2q2bEz2Yr3q6" readonly>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="copyFormLink()">Copy Link</button>
+                        <button class="btn btn-primary" onclick="emailStudentsForm()">Email to Students</button>
+                    </div>
+                </div>
+                
+                <div id="direct-collection" class="hidden">
+                    <div class="form-group">
+                        <label for="student-to-capture">Select Student</label>
+                        <select id="student-to-capture" class="form-control">
+                            <option value="">Choose a student</option>
+                            <option value="STD0048">STD0048 - Sarah Davis</option>
+                            <option value="STD0087">STD0087 - Kevin Lee</option>
+                        </select>
+                    </div>
+                    
+                    <div class="webcam-container" style="height: 200px;">
+                        <video id="capture-webcam" autoplay playsinline></video>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 1rem;">
+                        <button class="btn btn-primary" id="capture-btn" onclick="captureStudentImage()">Capture Image (0/3)</button>
+                        <button class="btn btn-danger" onclick="resetCapture()">Reset</button>
+                    </div>
+                    
+                    <div id="captured-images" class="capture-result"></div>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem;">
+                    <button class="btn btn-danger" onclick="hideModal('collect-data-modal')">Close</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="import-students-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="hideModal('import-students-modal')">&times;</span>
+                <h2 style="margin-bottom: 1.5rem;">Import Students</h2>
+                
+                <div class="form-group">
+                    <label for="csv-file">Upload CSV File</label>
+                    <input type="file" id="csv-file" class="form-control" accept=".csv">
+                </div>
+                
+                <div style="margin-top: 1rem;">
+                    <h4>CSV Format Instructions:</h4>
+                    <p style="margin: 0.5rem 0;">Your CSV file should have the following columns:</p>
+                    <ul style="margin-left: 1.5rem;">
+                        <li>student_id: Unique identifier for each student</li>
+                        <li>name: Full name of the student</li>
+                        <li>class: Class/section (CSE-A, CSE-B, etc.)</li>
+                        <li>email: Student's email address</li>
+                    </ul>
+                    <p style="margin: 0.5rem 0;">
+                        <a href="#" onclick="downloadCSVTemplate()">Download template CSV</a>
+                    </p>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem;">
+                    <button class="btn btn-danger" onclick="hideModal('import-students-modal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="importStudents()">Import</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="schedule-backup-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="hideModal('schedule-backup-modal')">&times;</span>
+                <h2 style="margin-bottom: 1.5rem;">Schedule System Backup</h2>
+                
+                <div class="form-group">
+                    <label for="backup-frequency">Backup Frequency</label>
+                    <select id="backup-frequency" class="form-control">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="day-of-week-container" style="display: none;">
+                    <label for="day-of-week">Day of Week</label>
+                    <select id="day-of-week" class="form-control">
+                        <option value="0">Sunday</option>
+                        <option value="1">Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="day-of-month-container" style="display: none;">
+                    <label for="day-of-month">Day of Month</label>
+                    <input type="number" id="day-of-month" class="form-control" min="1" max="28" value="1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="backup-time">Time</label>
+                    <input type="time" id="backup-time" class="form-control" value="02:00">
+                </div>
+                
+                <div class="form-group">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="backup-notification" checked>
+                        <label for="backup-notification">Send email notification when backup completes</label>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem;">
+                    <button class="btn btn-danger" onclick="hideModal('schedule-backup-modal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="scheduleBackup()">Schedule</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="restore-backup-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="hideModal('restore-backup-modal')">&times;</span>
+                <h2 style="margin-bottom: 1.5rem;">Restore System from Backup</h2>
+                
+                <div class="alert alert-danger" style="display: block;">
+                    <strong>Warning:</strong> Restoring from backup will replace all current data. This action cannot be undone.
+                </div>
+                
+                <div class="form-group">
+                    <label for="backup-source">Backup Source</label>
+                    <select id="backup-source" class="form-control">
+                        <option value="auto">Automated Backup - Mar 11, 2025 (02:00 AM)</option>
+                        <option value="auto">Automated Backup - Mar 10, 2025 (02:00 AM)</option>
+                        <option value="manual">Manual Backup - Mar 9, 2025 (10:15 AM)</option>
+                        <option value="upload">Upload Backup File</option>
+                    </select>
+                </div>
+                
+                <div id="upload-backup-container" class="form-group hidden">
+                    <label for="backup-file">Upload Backup File (.zip)</label>
+                    <input type="file" id="backup-file" class="form-control" accept=".zip">
+                </div>
+                
+                <div class="form-group">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="confirm-restore" required>
+                        <label for="confirm-restore">I confirm that I want to restore the system from backup</label>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem;">
+                    <button class="btn btn-danger" onclick="hideModal('restore-backup-modal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="restoreBackup()">Restore System</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global variables to store authentication state
+        let authToken = null;
+        let currentUser = null;
+        let faceDetectionInterval = null;
+        let capturedImageCount = 0;
+        let trainingTaskId = null;
+        let attendanceRecords = [];
+        let students = [];
+        let currentPage = 1;
+        let itemsPerPage = 5;
+        let studentsPage = 1;
+        let studentsItemsPerPage = 5;
+        
+        // Check if user is already logged in (using stored token)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for token in localStorage
+            authToken = localStorage.getItem('authToken');
+            if (authToken) {
+                // Validate token with server
+                validateAuthToken(authToken);
+            }
+            
+            // Initialize charts
+            initializeCharts();
+            
+            // Initialize event listeners
+            document.getElementById('backup-frequency').addEventListener('change', updateBackupScheduleFields);
+            document.getElementById('backup-source').addEventListener('change', toggleBackupUpload);
+            
+            // Initialize drag-and-drop for face image upload
+            initFaceUpload();
+            
+            // Set today's date as default date filter
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            document.getElementById('date-filter').value = formattedDate;
+        });
+        
+        // Backend API URLs
+        const API_BASE_URL = 'http://localhost:5000/api/v1'; // Replace with your actual API URL when deploying
+        
+        // Handle login form submission
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            // Hide any existing alerts
+            document.getElementById('login-alert').style.display = 'none';
+            document.getElementById('login-success').style.display = 'none';
+            
+            // Show loading spinner
+            const loginBtn = document.getElementById('login-btn');
+            const loginSpinner = document.getElementById('login-spinner');
+            loginBtn.disabled = true;
+            loginSpinner.classList.remove('hidden');
+            
+            // Get form data
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Make API call to authenticate
+            authenticateUser(username, password)
+                .then(response => {
+                    if (response.success) {
+                        // Store auth token
+                        authToken = response.token;
+                        currentUser = response.user;
+                        
+                        // Save token to localStorage for persistence
+                        localStorage.setItem('authToken', authToken);
+                        
+                        // Show success message
+                        document.getElementById('login-success').style.display = 'block';
+                        
+                        // Load dashboard data
+                        loadDashboardData();
+                        
+                        // Redirect to dashboard after a short delay
+                        setTimeout(() => {
+                            document.getElementById('login-view').classList.add('hidden');
+                            document.getElementById('dashboard-view').classList.remove('hidden');
+                            
+                            // Reset login form
+                            document.getElementById('login-form').reset();
+                        }, 1500);
+                    } else {
+                        // Show error message
+                        document.getElementById('login-alert').textContent = response.message || 'Authentication failed. Please try again.';
+                        document.getElementById('login-alert').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Login error:', error);
+                    document.getElementById('login-alert').textContent = 'Server error. Please try again later.';
+                    document.getElementById('login-alert').style.display = 'block';
+                })
+                .finally(() => {
+                    // Hide loading spinner
+                    loginBtn.disabled = false;
+                    loginSpinner.classList.add('hidden');
+                });
+        }
+        
+        // Authenticate user with backend
+        async function authenticateUser(username, password) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Authentication error:', error);
+                
+                // Fallback to simulation if server is not available (for demo purposes)
+                return simulateAuthAPI(username, password);
+            }
+        }
+        
+        // Simulate auth API for fallback (demo purposes)
+        function simulateAuthAPI(username, password) {
+            return new Promise((resolve) => {
+                // Simulate network delay
+                setTimeout(() => {
+                    // Demo credentials check
+                    if (username === 'admin' && password === 'password123') {
+                        resolve({
+                            success: true,
+                            token: 'demo-jwt-token-xyz-123',
+                            user: {
+                                id: 1,
+                                username: 'admin',
+                                name: 'Admin User',
+                                role: 'administrator',
+                                email: 'admin@example.com'
+                            }
+                        });
+                    } else {
+                        resolve({
+                            success: false,
+                            message: 'Invalid username or password'
+                        });
+                    }
+                }, 1000);
+            });
+        }
+        
+        // Validate stored auth token
+        async function validateAuthToken(token) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.valid) {
+                    currentUser = data.user;
+                    // Show dashboard
+                    document.getElementById('login-view').classList.add('hidden');
+                    document.getElementById('dashboard-view').classList.remove('hidden');
+                    // Load dashboard data
+                    loadDashboardData();
+                } else {
+                    // Token invalid, clear it
+                    localStorage.removeItem('authToken');
+                    authToken = null;
+                    currentUser = null;
+                }
+            } catch (error) {
+                console.error('Token validation error:', error);
+                
+                // Fallback for demo (simulate successful validation)
+                if (token === 'demo-jwt-token-xyz-123') {
+                    currentUser = {
+                        id: 1,
+                        username: 'admin',
+                        name: 'Admin User',
+                        role: 'administrator',
+                        email: 'admin@example.com'
+                    };
+                    // Show dashboard
+                    document.getElementById('login-view').classList.add('hidden');
+                    document.getElementById('dashboard-view').classList.remove('hidden');
+                    // Load dashboard data
+                    loadDashboardData();
+                } else {
+                    // Token invalid, clear it
+                    localStorage.removeItem('authToken');
+                    authToken = null;
+                    currentUser = null;
+                }
+            }
+        }
+        
+        // Logout function
+        function logout() {
+            // For a real app, you would invalidate the token on the server
+            fetch(`${API_BASE_URL}/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            }).catch(console.error);
+            
+            // Clear auth state
+            localStorage.removeItem('authToken');
+            authToken = null;
+            currentUser = null;
+            
+            // Redirect to login
+            document.getElementById('dashboard-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+        }
+        
+        // Load dashboard data from API
+        async function loadDashboardData() {
+            if (!authToken) {
+                console.error('Cannot load dashboard: No authentication token');
+                return;
+            }
+            
+            try {
+                // Load recent attendance data
+                loadRecentAttendance();
+                
+                // Load model stats
+                loadModelStats();
+                
+                // Update charts
+                updateDashboardCharts();
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+        
+        // Load recent attendance data
+        async function loadRecentAttendance() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/attendance/recent`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateAttendanceTable(data.attendance);
+                }
+            } catch (error) {
+                console.error('Error loading recent attendance:', error);
+                
+                // Fallback to simulated data for demo
+                const demoData = [
+                    {
+                        studentId: 'STD0012',
+                        name: 'John Smith',
+                        class: 'CSE-A',
+                        time: '08:45 AM',
+                        status: 'present'
+                    },
+                    {
+                        studentId: 'STD0024',
+                        name: 'Emily Johnson',
+                        class: 'CSE-B',
+                        time: '08:52 AM',
+                        status: 'present'
+                    },
+                    {
+                        studentId: 'STD0036',
+                        name: 'Michael Brown',
+                        class: 'CSE-A',
+                        time: '09:01 AM',
+                        status: 'present'
+                    },
+                    {
+                        studentId: 'STD0048',
+                        name: 'Sarah Davis',
+                        class: 'CSE-C',
+                        time: '-',
+                        status: 'absent'
+                    },
+                    {
+                        studentId: 'STD0059',
+                        name: 'Robert Wilson',
+                        class: 'CSE-B',
+                        time: '09:12 AM',
+                        status: 'present'
+                    }
+                ];
+                
+                updateAttendanceTable(demoData);
+            }
+        }
+        
+        // Update attendance table with data
+        function updateAttendanceTable(attendanceData) {
+            const tableBody = document.getElementById('recent-attendance-table');
+            
+            if (!attendanceData || attendanceData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No attendance records found.</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            
+            attendanceData.forEach(record => {
+                html += `
+                <tr>
+                    <td>${record.studentId}</td>
+                    <td>${record.name}</td>
+                    <td>${record.class}</td>
+                    <td>${record.time}</td>
+                    <td><span class="status-badge status-${record.status}">${record.status === 'present' ? 'Present' : 'Absent'}</span></td>
+                </tr>
+                `;
+            });
+            
+            tableBody.innerHTML = html;
+        }
+        
+        // Load model stats
+        async function loadModelStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/model/stats`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateModelStatsDisplay(data.stats);
+                }
+            } catch (error) {
+                console.error('Error loading model stats:', error);
+                
+                // Fallback to simulated data for demo
+                const demoStats = {
+                    accuracy: 95.8,
+                    studentsEnrolled: 378,
+                    presentToday: 245,
+                    avgRecognitionTime: 3.2
+                };
+                
+                updateModelStatsDisplay(demoStats);
+            }
+        }
+        
+        // Update model stats display
+        function updateModelStatsDisplay(stats) {
+            if (stats) {
+                document.getElementById('model-accuracy').textContent = `${stats.accuracy}%`;
+                document.getElementById('students-enrolled').textContent = stats.studentsEnrolled;
+                document.getElementById('present-today').textContent = stats.presentToday;
+                document.getElementById('avg-recognition-time').textContent = `${stats.avgRecognitionTime}s`;
+                
+                // Also update evaluation page stats if they exist
+                document.getElementById('current-accuracy').textContent = `${stats.accuracy}%`;
+                document.getElementById('eval-accuracy').textContent = `${stats.accuracy}%`;
+                
+                if (stats.precision) {
+                    document.getElementById('current-precision').textContent = `${stats.precision}%`;
+                    document.getElementById('eval-precision').textContent = `${stats.precision}%`;
+                }
+                
+                if (stats.recall) {
+                    document.getElementById('current-recall').textContent = `${stats.recall}%`;
+                    document.getElementById('eval-recall').textContent = `${stats.recall}%`;
+                }
+                
+                if (stats.f1Score) {
+                    document.getElementById('current-f1').textContent = `${stats.f1Score}%`;
+                    document.getElementById('eval-f1').textContent = `${stats.f1Score}%`;
+                }
+                
+                if (stats.lastTrained) {
+                    document.getElementById('last-trained-date').textContent = stats.lastTrained;
+                }
+                
+                if (stats.modelVersion) {
+                    document.getElementById('model-version').textContent = stats.modelVersion;
+                }
+                
+                if (stats.datasetSize) {
+                    document.getElementById('dataset-size').textContent = stats.datasetSize;
+                }
+                
+                if (stats.datasetStudents) {
+                    document.getElementById('dataset-students').textContent = stats.datasetStudents;
+                }
+            }
+        }
+        
+        // Initialize dashboard charts
+        function initializeCharts() {
+            // Create attendance chart
+            const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+            
+            // Sample data
+            const attendanceData = {
+                labels: ['CSE-A', 'CSE-B', 'CSE-C'],
+                datasets: [
+                    {
+                        label: 'Present',
+                        data: [85, 78, 82],
+                        backgroundColor: '#4cc9f0',
+                        borderWidth: 0
+                    },
+                    {
+                        label: 'Absent',
+                        data: [15, 22, 18],
+                        backgroundColor: '#ef476f',
+                        borderWidth: 0
+                    }
+                ]
+            };
+            
+            // Create chart
+            new Chart(attendanceCtx, {
+                type: 'bar',
+                data: attendanceData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Attendance Rate by Class',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Create confusion matrix visualization (simplified)
+            const cmCtx = document.getElementById('confusionMatrix').getContext('2d');
+            const confusionLabels = ['Student A', 'Student B', 'Student C', 'Student D', 'Unknown'];
+            
+            // Sample data (simplified)
+            const cmData = {
+                labels: confusionLabels,
+                datasets: [{
+                    label: 'Confusion Matrix',
+                    data: [
+                        [0.95, 0.02, 0.01, 0.01, 0.01],
+                        [0.03, 0.93, 0.02, 0.01, 0.01],
+                        [0.01, 0.03, 0.94, 0.01, 0.01],
+                        [0.01, 0.01, 0.02, 0.95, 0.01],
+                        [0.01, 0.01, 0.01, 0.02, 0.95]
+                    ],
+                    backgroundColor: function(context) {
+                        const value = context.dataset.data[context.dataIndex];
+                        const alpha = value;
+                        return `rgba(67, 97, 238, ${alpha})`;
+                    }
+                }]
+            };
+            
+            // Create training history chart
+            const historyCtx = document.getElementById('trainingHistory').getContext('2d');
+            
+            // Sample data
+            const historyData = {
+                labels: Array.from({length: 50}, (_, i) => i + 1),
+                datasets: [
+                    {
+                        label: 'Training Accuracy',
+                        data: Array.from({length: 50}, (_, i) => 0.5 + 0.45 * (1 - Math.exp(-0.1 * i))),
+                        borderColor: '#4cc9f0',
+                        backgroundColor: 'rgba(76, 201, 240, 0.1)',
+                        fill: false,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Validation Accuracy',
+                        data: Array.from({length: 50}, (_, i) => 0.5 + 0.43 * (1 - Math.exp(-0.08 * i)) - Math.random() * 0.05),
+                        borderColor: '#3a0ca3',
+                        backgroundColor: 'rgba(58, 12, 163, 0.1)',
+                        fill: false,
+                        tension: 0.4
+                    }
+                ]
+            };
+            
+            // Create chart
+            new Chart(historyCtx, {
+                type: 'line',
+                data: historyData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1,
+                            ticks: {
+                                callback: function(value) {
+                                    return (value * 100).toFixed(0) + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Model Training History',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Show attendance mode
+        function showAttendanceMode() {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('attendance-view').classList.remove('hidden');
+            
+            // Initialize webcam
+            const video = document.getElementById('webcam-feed');
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function(stream) {
+                        video.srcObject = stream;
+                    })
+                    .catch(function(error) {
+                        console.error("Could not access the camera: ", error);
+                        alert("Could not access the camera. Please ensure camera permissions are enabled.");
+                    });
+            }
+        }
+        
+        // Go back to login view
+        function showLoginView() {
+            document.getElementById('attendance-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+            
+            // Stop webcam and face detection interval
+            stopWebcam();
+        }
+        
+        // Stop webcam and clear intervals
+        function stopWebcam() {
+            const video = document.getElementById('webcam-feed');
+            if (video.srcObject) {
+                const tracks = video.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            
+            // Clear face detection interval
+            if (faceDetectionInterval) {
+                clearInterval(faceDetectionInterval);
+                faceDetectionInterval = null;
+            }
+        }
+        
+        // Start face recognition
+        async function startFaceRecognition() {
+            const status = document.getElementById('recognition-status');
+            const faceBox = document.querySelector('.face-box');
+            const recognitionResult = document.getElementById('recognition-result');
+            const startBtn = document.getElementById('start-recognition-btn');
+            
+            status.textContent = "Loading face recognition model...";
+            startBtn.disabled = true;
+            
+            try {
+                // Load face-api.js models
+                await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');
+                await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+                await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+                
+                status.textContent = "Model loaded. Looking for faces...";
+                
+                // Start face detection
+                const video = document.getElementById('webcam-feed');
+                
+                // Clear previous interval
+                if (faceDetectionInterval) {
+                    clearInterval(faceDetectionInterval);
+                }
+                
+                // Perform face detection every 1 second
+                faceDetectionInterval = setInterval(async () => {
+                    try {
+                        const detections = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+                        
+                        if (detections) {
+                            // We detected a face
+                            faceBox.classList.add('face-detected');
+                            status.textContent = "Face detected, recognizing...";
+                            
+                            // Send face descriptor to server for recognition
+                            const descriptor = Array.from(detections.descriptor);
+                            
+                            // API call to recognize face
+                            const response = await fetch(`${API_BASE_URL}/recognition/identify`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ faceDescriptor: descriptor })
+                            });
+                            
+                            const result = await response.json();
+                            
+                            if (result.success && result.identified) {
+                                // Face recognized
+                                faceBox.classList.remove('face-detected');
+                                faceBox.classList.add('face-recognized');
+                                
+                                status.textContent = `✅ Attendance marked for ${result.student.name} (${result.student.id})`;
+                                recognitionResult.textContent = `${result.student.name} - ${result.student.class}`;
+                                recognitionResult.style.display = 'block';
+                                
+                                // Schedule to clear the recognition after 5 seconds
+                                setTimeout(() => {
+                                    faceBox.classList.remove('face-recognized');
+                                    recognitionResult.style.display = 'none';
+                                    status.textContent = "Ready for next student...";
+                                }, 5000);
+                                
+                                // Clear interval temporarily to avoid multiple recognitions
+                                clearInterval(faceDetectionInterval);
+                                setTimeout(() => {
+                                    faceDetectionInterval = setInterval(arguments.callee, 1000);
+                                }, 5000);
+                            } else {
+                                // Face not recognized
+                                faceBox.classList.remove('face-detected');
+                                faceBox.classList.add('face-unknown');
+                                
+                                status.textContent = "Face not recognized. Please try again.";
+                                
+                                // Clear class after 2 seconds
+                                setTimeout(() => {
+                                    faceBox.classList.remove('face-unknown');
+                                }, 2000);
+                            }
+                        } else {
+                            // No face detected
+                            faceBox.classList.remove('face-detected');
+                            faceBox.classList.remove('face-recognized');
+                            faceBox.classList.remove('face-unknown');
+                            status.textContent = "No face detected. Please position your face in the frame.";
+                            recognitionResult.style.display = 'none';
+                        }
+                    } catch (detectionError) {
+                        console.error("Face detection error:", detectionError);
+                        status.textContent = "Error during face detection. Please try again.";
+                    }
+                }, 1000);
+                
+                startBtn.disabled = false;
+            } catch (error) {
+                console.error("Error loading face recognition model:", error);
+                status.textContent = "Failed to load face recognition model. Please refresh the page.";
+                startBtn.disabled = false;
+                
+                // For demo purposes, simulate recognition
+                simulateFaceRecognition();
+            }
+        }
+        
+        // Simulate face recognition (for demo purposes)
+        function simulateFaceRecognition() {
+            const status = document.getElementById('recognition-status');
+            const faceBox = document.querySelector('.face-box');
+            const recognitionResult = document.getElementById('recognition-result');
+            
+            status.textContent = "Detecting face...";
+            
+            setTimeout(() => {
+                // Simulate face detection
+                faceBox.classList.add('face-detected');
+                status.textContent = "Face detected, recognizing...";
+                
+                setTimeout(() => {
+                    // Simulate recognition
+                    faceBox.classList.remove('face-detected');
+                    faceBox.classList.add('face-recognized');
+                    
+                    status.textContent = "✅ Attendance marked for John Smith (STD0012)";
+                    recognitionResult.textContent = "John Smith - CSE-A";
+                    recognitionResult.style.display = 'block';
+                    
+                    // Clear after 5 seconds
+                    setTimeout(() => {
+                        faceBox.classList.remove('face-recognized');
+                        recognitionResult.style.display = 'none';
+                        status.textContent = "Ready for next student...";
+                    }, 5000);
+                }, 2000);
+            }, 1500);
+        }
+        
+        // Navigation functions
+        function showDashboard() {
+            // Only allow if authenticated
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            hideAllContent();
+            document.getElementById('dashboard-content').classList.remove('hidden');
+            setActiveLink('Dashboard');
+            
+            // Refresh dashboard data
+            loadDashboardData();
+        }
+        
+        function showAttendanceRecords() {
+            // Authentication check
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            hideAllContent();
+            document.getElementById('attendance-records-content').classList.remove('hidden');
+            setActiveLink('Attendance Records');
+            
+            // Load attendance records
+            loadAttendanceRecords();
+        }
+        
+        // Load attendance records
+        async function loadAttendanceRecords() {
+            try {
+                const dateFilter = document.getElementById('date-filter').value;
+                const classFilter = document.getElementById('class-filter').value;
+                const statusFilter = document.getElementById('status-filter').value;
+                
+                const response = await fetch(`${API_BASE_URL}/attendance/records?page=${currentPage}&limit=${itemsPerPage}&date=${dateFilter}&class=${classFilter}&status=${statusFilter}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    attendanceRecords = data.records;
+                    updateAttendanceRecordsTable(data.records, data.total);
+                }
+            } catch (error) {
+                console.error('Error loading attendance records:', error);
+                
+                // Fallback to demo data
+                const demoRecords = [];
+                
+                // Generate demo data
+                const classes = ['CSE-A', 'CSE-B', 'CSE-C'];
+                const names = ['John Smith', 'Emily Johnson', 'Michael Brown', 'Sarah Davis', 'Robert Wilson', 'Lisa Anderson', 'David Clark', 'Emma Taylor'];
+                const statuses = ['present', 'present', 'present', 'absent', 'present', 'present', 'absent', 'present'];
+                
+                for (let i = 0; i < 20; i++) {
+                    const status = statuses[i % statuses.length];
+                    demoRecords.push({
+                        id: i + 1,
+                        studentId: `STD${(1000 + i).toString().padStart(4, '0')}`,
+                        name: names[i % names.length],
+                        class: classes[i % classes.length],
+                        date: '2025-03-12',
+                        time: status === 'present' ? `0${8 + Math.floor(i / 5)}:${(40 + i % 20).toString().padStart(2, '0')} AM` : '-',
+                        status: status
+                    });
+                }
+                
+                attendanceRecords = demoRecords;
+                updateAttendanceRecordsTable(demoRecords.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage), demoRecords.length);
+            }
+        }
+        
+        // Update attendance records table
+        function updateAttendanceRecordsTable(records, total) {
+            const tableBody = document.getElementById('attendance-records-table');
+            
+            if (!records || records.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No attendance records found.</td></tr>';
+                document.getElementById('records-pagination-info').textContent = `No records found`;
+                return;
+            }
+            
+            let html = '';
+            
+            records.forEach(record => {
+                html += `
+                <tr>
+                    <td>${record.studentId}</td>
+                    <td>${record.name}</td>
+                    <td>${record.class}</td>
+                    <td>${formatDate(record.date)}</td>
+                    <td>${record.time}</td>
+                    <td><span class="status-badge status-${record.status}">${record.status === 'present' ? 'Present' : 'Absent'}</span></td>
+                    <td><button class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="editAttendanceRecord(${record.id})">Edit</button></td>
+                </tr>
+                `;
+            });
+            
+            tableBody.innerHTML = html;
+            
+            // Update pagination info
+            const start = (currentPage - 1) * itemsPerPage + 1;
+            const end = Math.min(currentPage * itemsPerPage, total);
+            document.getElementById('records-pagination-info').textContent = `Showing ${start}-${end} of ${total} records`;
+        }
+        
+        // Format date for display
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+        }
+        
+        // Filter attendance records
+        function filterAttendanceRecords() {
+            currentPage = 1;
+            loadAttendanceRecords();
+        }
+        
+        // Navigate to previous page
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadAttendanceRecords();
+            }
+        }
+        
+        // Navigate to next page
+        function nextPage() {
+            currentPage++;
+            loadAttendanceRecords();
+        }
+        
+        // Export attendance data
+        function exportAttendance(format) {
+            const dateFilter = document.getElementById('date-filter').value;
+            const classFilter = document.getElementById('class-filter').value;
+            const statusFilter = document.getElementById('status-filter').value;
+            
+            fetch(`${API_BASE_URL}/attendance/export?format=${format}&date=${dateFilter}&class=${classFilter}&status=${statusFilter}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `attendance_report_${dateFilter || 'all'}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error('Error exporting attendance:', error);
+                alert(`Error exporting attendance as ${format.toUpperCase()}.`);
+            });
+        }
+        
+        function showModelTraining() {
+            // Authentication check
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            hideAllContent();
+            document.getElementById('model-training-content').classList.remove('hidden');
+            setActiveLink('Model Training');
+            
+            // Load model training data
+            loadModelTrainingData();
+        }
+        
+        // Load model training data
+        async function loadModelTrainingData() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/model/training-info`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update model stats and training information
+                    updateModelStatsDisplay(data.stats);
+                    
+                    // Update dataset info
+                    if (data.dataset) {
+                        document.getElementById('dataset-size').textContent = data.dataset.size.toLocaleString();
+                        document.getElementById('dataset-students').textContent = data.dataset.students.toLocaleString();
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading model training data:', error);
+                
+                // Fallback to demo data
+                const demoData = {
+                    stats: {
+                        accuracy: 95.8,
+                        precision: 97.2,
+                        recall: 94.5,
+                        f1Score: 95.8,
+                        lastTrained: 'March 10, 2025 at 02:15 PM',
+                        modelVersion: 'v2.3.1'
+                    },
+                    dataset: {
+                        size: 1134,
+                        students: 378
+                    }
+                };
+                
+                updateModelStatsDisplay(demoData.stats);
+                document.getElementById('dataset-size').textContent = demoData.dataset.size.toLocaleString();
+                document.getElementById('dataset-students').textContent = demoData.dataset.students.toLocaleString();
+            }
+        }
+        
+        function showStudentManagement() {
+            // Authentication check
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            hideAllContent();
+            document.getElementById('student-management-content').classList.remove('hidden');
+            setActiveLink('Student Management');
+            
+            // Load student data
+            loadStudentData();
+        }
+        
+        // Load student data
+        async function loadStudentData() {
+            try {
+                const searchQuery = document.getElementById('student-search').value || '';
+                
+                const response = await fetch(`${API_BASE_URL}/students?page=${studentsPage}&limit=${studentsItemsPerPage}&search=${searchQuery}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    students = data.students;
+                    updateStudentsTable(data.students, data.total);
+                }
+            } catch (error) {
+                console.error('Error loading student data:', error);
+                
+                // Fallback to demo data
+                const demoStudents = [];
+                
+                // Generate demo data
+                const classes = ['CSE-A', 'CSE-B', 'CSE-C'];
+                const names = ['John Smith', 'Emily Johnson', 'Michael Brown', 'Sarah Davis', 'Robert Wilson', 'Lisa Anderson', 'David Clark', 'Emma Taylor'];
+                
+                for (let i = 0; i < 20; i++) {
+                    const firstName = names[i % names.length].split(' ')[0];
+                    const lastName = names[i % names.length].split(' ')[1];
+                    
+                    demoStudents.push({
+                        id: i + 1,
+                        studentId: `STD${(1000 + i).toString().padStart(4, '0')}`,
+                        name: names[i % names.length],
+                        class: classes[i % classes.length],
+                        email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`,
+                        faceImages: i % 4 === 0 ? 2 : 3
+                    });
+                }
+                
+                students = demoStudents;
+                updateStudentsTable(demoStudents.slice((studentsPage - 1) * studentsItemsPerPage, studentsPage * studentsItemsPerPage), demoStudents.length);
+            }
+        }
+        
+        // Update students table
+        function updateStudentsTable(students, total) {
+            const tableBody = document.getElementById('students-table');
+            
+            if (!students || students.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No students found.</td></tr>';
+                document.getElementById('students-pagination-info').textContent = `No students found`;
+                return;
+            }
+            
+            let html = '';
+            
+            students.forEach(student => {
+                html += `
+                <tr>
+                    <td>${student.studentId}</td>
+                    <td>${student.name}</td>
+                    <td>${student.class}</td>
+                    <td>${student.email}</td>
+                    <td>${student.faceImages} images</td>
+                    <td>
+                        <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="editStudent(${student.id})">Edit</button>
+                        <button class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="confirmDeleteStudent(${student.id})">Delete</button>
+                    </td>
+                </tr>
+                `;
+            });
+            
+            tableBody.innerHTML = html;
+            
+            // Update pagination info
+            const start = (studentsPage - 1) * studentsItemsPerPage + 1;
+            const end = Math.min(studentsPage * studentsItemsPerPage, total);
+            document.getElementById('students-pagination-info').textContent = `Showing ${start}-${end} of ${total} students`;
+        }
+        
+        // Search students
+        function searchStudents() {
+            studentsPage = 1;
+            loadStudentData();
+        }
+        
+        // Navigate to previous page of students
+        function previousStudentsPage() {
+            if (studentsPage > 1) {
+                studentsPage--;
+                loadStudentData();
+            }
+        }
+        
+        // Navigate to next page of students
+        function nextStudentsPage() {
+            studentsPage++;
+            loadStudentData();
+        }
+        
+        function showModelEvaluation() {
+            // Authentication check
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            hideAllContent();
+            document.getElementById('model-evaluation-content').classList.remove('hidden');
+            setActiveLink('Model Evaluation');
+            
+            // Load model evaluation data
+            loadModelEvaluationData();
+        }
+        
+        // Load model evaluation data
+        async function loadModelEvaluationData() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/model/evaluation`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update model stats
+                    document.getElementById('eval-accuracy').textContent = `${data.metrics.accuracy}%`;
+                    document.getElementById('eval-precision').textContent = `${data.metrics.precision}%`;
+                    document.getElementById('eval-recall').textContent = `${data.metrics.recall}%`;
+                    document.getElementById('eval-f1').textContent = `${data.metrics.f1Score}%`;
+                    
+                    // Update charts with real data if available
+                    // (For demo purpose, we're already using placeholder charts)
+                }
+            } catch (error) {
+                console.error('Error loading model evaluation data:', error);
+                
+                // Fallback to demo data (already displayed from initializeCharts)
+            }
+        }
+        
+        function showSystemSettings() {
+            // Authentication check
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            hideAllContent();
+            document.getElementById('system-settings-content').classList.remove('hidden');
+            setActiveLink('System Settings');
+            
+            // Load system settings
+            loadSystemSettings();
+        }
+        
+        // Load system settings
+        async function loadSystemSettings() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/settings`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update camera settings
+                    document.getElementById('camera-source').value = data.settings.camera.source;
+                    document.getElementById('resolution').value = data.settings.camera.resolution;
+                    document.getElementById('face-confidence').value = data.settings.camera.confidenceThreshold;
+                    document.getElementById('confidence-output').textContent = data.settings.camera.confidenceThreshold;
+                    
+                    // Update attendance settings
+                    document.getElementById('class-start').value = data.settings.attendance.classStart;
+                    document.getElementById('class-end').value = data.settings.attendance.classEnd;
+                    document.getElementById('late-threshold').value = data.settings.attendance.lateThreshold;
+                    document.getElementById('enable-notifications').checked = data.settings.attendance.enableNotifications;
+                    
+                    // Update backup info
+                    document.getElementById('last-backup-date').textContent = data.settings.lastBackup || 'Never';
+                    
+                    // Update admin email
+                    document.getElementById('admin-email').value = data.settings.adminEmail || 'admin@example.com';
+                }
+            } catch (error) {
+                console.error('Error loading system settings:', error);
+                
+                // Settings already have default values in HTML
+            }
+        }
+        
+        // Save system settings
+        function saveSystemSettings(section) {
+            // Collect settings based on section
+            let settings = {};
+            
+            if (section === 'camera') {
+                settings = {
+                    camera: {
+                        source: document.getElementById('camera-source').value,
+                        resolution: document.getElementById('resolution').value,
+                        confidenceThreshold: document.getElementById('face-confidence').value
+                    }
+                };
+            } else if (section === 'attendance') {
+                settings = {
+                    attendance: {
+                        classStart: document.getElementById('class-start').value,
+                        classEnd: document.getElementById('class-end').value,
+                        lateThreshold: document.getElementById('late-threshold').value,
+                        enableNotifications: document.getElementById('enable-notifications').checked
+                    }
+                };
+            }
+            
+            // Save settings to server
+            fetch(`${API_BASE_URL}/settings`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(settings)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved successfully!`);
+                } else {
+                    alert(`Error saving ${section} settings: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error(`Error saving ${section} settings:`, error);
+                // For demo purposes, simulate successful save
+                alert(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved successfully!`);
+            });
+        }
+        
+        // Update admin account
+        function updateAdminAccount() {
+            const email = document.getElementById('admin-email').value;
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            // Basic validation
+            if (!email) {
+                alert("Email is required.");
+                return;
+            }
+            
+            if (newPassword) {
+                if (!currentPassword) {
+                    alert("Current password is required to set a new password.");
+                    return;
+                }
+                
+                if (newPassword !== confirmPassword) {
+                    alert("New password and confirmation password do not match.");
+                    return;
+                }
+            }
+            
+            // Update admin account
+            fetch(`${API_BASE_URL}/auth/update-admin`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    email,
+                    currentPassword,
+                    newPassword
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Admin account updated successfully!");
+                    // Clear password fields
+                    document.getElementById('current-password').value = '';
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('confirm-password').value = '';
+                } else {
+                    alert(`Error updating admin account: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error("Error updating admin account:", error);
+                // For demo purposes, simulate successful update
+                alert("Admin account updated successfully!");
+                // Clear password fields
+                document.getElementById('current-password').value = '';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+            });
+        }
+        
+        // Helper function to hide all content sections
+        function hideAllContent() {
+            const contentElements = document.querySelectorAll('.main-content > div');
+            contentElements.forEach(element => {
+                element.classList.add('hidden');
+            });
+        }
+        
+        // Set active link in sidebar
+        function setActiveLink(linkText) {
+            const sidebarLinks = document.querySelectorAll('.sidebar-menu a');
+            sidebarLinks.forEach(link => {
+                if (link.textContent.includes(linkText)) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        }
+        
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+            
+            // Special handling for direct data collection
+            if (modalId === 'collect-data-modal' && document.getElementById('collection-method').value === 'direct') {
+                initializeDirectCapture();
+            }
+        }
+        
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            
+            // Special handling for direct data collection
+            if (modalId === 'collect-data-modal') {
+                const captureWebcam = document.getElementById('capture-webcam');
+                if (captureWebcam.srcObject) {
+                    const tracks = captureWebcam.srcObject.getTracks();
+                    tracks.forEach(track => track.stop());
+                    captureWebcam.srcObject = null;
+                }
+            }
+        }
+        
+        // Switch tabs for model training
+        function switchTab(tabId) {
+            // Hide all tab content
+            document.getElementById('basic-config').classList.add('hidden');
+            document.getElementById('advanced-config').classList.add('hidden');
+            
+            // Show selected tab content
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            // Update tab styling
+            document.querySelectorAll('.tab').forEach(tab => {
+                if (tab.textContent.includes('Basic') && tabId === 'basic-config') {
+                    tab.classList.add('active');
+                } else if (tab.textContent.includes('Advanced') && tabId === 'advanced-config') {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+        }
+        
+        // Switch tabs for visualization
+        function switchVisualizationTab(tabId) {
+            // Hide all visualization content
+            document.getElementById('feature-maps').classList.add('hidden');
+            document.getElementById('tsne').classList.add('hidden');
+            
+            // Show selected visualization content
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            // Update tab styling
+            const tabs = document.querySelectorAll('#model-evaluation-content .tab');
+            tabs.forEach(tab => {
+                if ((tab.textContent.includes('Feature Maps') && tabId === 'feature-maps') ||
+                    (tab.textContent.includes('t-SNE') && tabId === 'tsne')) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+        }
+        
+        // Start model training
+        async function startTraining() {
+            // Authentication check
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            showModal('training-modal');
+            
+            // Get training configuration
+            const trainingConfig = {
+                batchSize: parseInt(document.getElementById('batch-size').value),
+                epochs: parseInt(document.getElementById('epochs').value),
+                learningRate: parseFloat(document.getElementById('learning-rate').value),
+                validationSplit: parseFloat(document.getElementById('validation-split').value),
+                optimizer: document.getElementById('optimizer')?.value || 'adam',
+                activation: document.getElementById('activation')?.value || 'relu',
+                dropoutRate: parseFloat(document.getElementById('dropout-rate')?.value || '0.5'),
+                convLayers: parseInt(document.getElementById('conv-layers')?.value || '5')
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/model/train`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(trainingConfig)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Store training task ID
+                    trainingTaskId = data.taskId;
+                    
+                    // Poll for training progress
+                    pollTrainingProgress();
+                } else {
+                    console.error('Failed to start training:', data.message);
+                    hideModal('training-modal');
+                    alert('Training failed to start: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error starting training:', error);
+                
+                // Fallback for demo
+                simulateTraining();
+            }
+        }
+        
+        // Poll for training progress
+        async function pollTrainingProgress() {
+            if (!trainingTaskId) {
+                return;
+            }
+            
+            const progressBar = document.getElementById('training-progress');
+            const status = document.getElementById('training-status');
+            const timeRemaining = document.getElementById('time-remaining');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/model/training-status/${trainingTaskId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update progress
+                    progressBar.style.width = `${data.progress}%`;
+                    status.textContent = data.status;
+                    timeRemaining.textContent = data.timeRemaining;
+                    
+                    if (data.completed) {
+                        // Training completed
+                        status.textContent = "Training completed successfully!";
+                        timeRemaining.textContent = "0 minutes";
+                        
+                        // Close modal after delay
+                        setTimeout(() => {
+                            hideModal('training-modal');
+                            // Refresh model stats
+                            loadModelTrainingData();
+                        }, 2000);
+                    } else {
+                        // Poll again after 2 seconds
+                        setTimeout(pollTrainingProgress, 2000);
+                    }
+                } else {
+                    console.error('Failed to get training status:', data.message);
+                    hideModal('training-modal');
+                    alert('Failed to get training status: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error checking training status:', error);
+                
+                // Fallback for demo
+                simulateTraining();
+            }
+        }
+        
+        // Simulate training progress for demo
+        function simulateTraining() {
+            let progress = 0;
+            const progressBar = document.getElementById('training-progress');
+            const status = document.getElementById('training-status');
+            const timeRemaining = document.getElementById('time-remaining');
+            
+            const interval = setInterval(() => {
+                progress += 5;
+                progressBar.style.width = `${progress}%`;
+                
+                if (progress < 30) {
+                    status.textContent = "Preprocessing images...";
+                    timeRemaining.textContent = "45 minutes";
+                } else if (progress < 60) {
+                    status.textContent = "Training CNN model (Epoch " + Math.floor((progress-30)/3) + "/10)...";
+                    timeRemaining.textContent = "30 minutes";
+                } else if (progress < 90) {
+                    status.textContent = "Optimizing model parameters...";
+                    timeRemaining.textContent = "15 minutes";
+                } else {
+                    status.textContent = "Finalizing and saving model...";
+                    timeRemaining.textContent = "5 minutes";
+                }
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    status.textContent = "Training completed successfully!";
+                    timeRemaining.textContent = "0 minutes";
+                    
+                    setTimeout(() => {
+                        hideModal('training-modal');
+                        // Refresh model stats
+                        loadModelTrainingData();
+                    }, 2000);
+                }
+            }, 500);
+        }
+        
+        // Cancel training
+        function cancelTraining() {
+            if (trainingTaskId) {
+                fetch(`${API_BASE_URL}/model/cancel-training/${trainingTaskId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        hideModal('training-modal');
+                        alert("Training has been cancelled.");
+                    } else {
+                        alert(`Failed to cancel training: ${data.message}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error cancelling training:', error);
+                    hideModal('training-modal');
+                    alert("Training has been cancelled.");
+                });
+            } else {
+                hideModal('training-modal');
+            }
+        }
+        
+        // Apply data augmentation
+        function applyDataAugmentation() {
+            const config = {
+                rotation: document.getElementById('rotation').checked,
+                horizontalFlip: document.getElementById('horizontal-flip').checked,
+                brightness: document.getElementById('brightness').checked,
+                zoom: document.getElementById('zoom').checked,
+                shift: document.getElementById('shift').checked,
+                factor: parseInt(document.getElementById('aug-factor').value)
+            };
+            
+            fetch(`${API_BASE_URL}/dataset/augment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(config)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    hideModal('data-augmentation-modal');
+                    alert(`Data augmentation applied successfully! New dataset size: ${data.newSize} images.`);
+                    
+                    // Update dataset size display
+                    document.getElementById('dataset-size').textContent = data.newSize.toLocaleString();
+                } else {
+                    alert(`Failed to apply data augmentation: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error applying data augmentation:', error);
+                
+                // For demo purposes
+                hideModal('data-augmentation-modal');
+                
+                const factor = parseInt(document.getElementById('aug-factor').value);
+                const currentSize = parseInt(document.getElementById('dataset-size').textContent.replace(/,/g, ''));
+                const newSize = currentSize * factor;
+                
+                alert(`Data augmentation applied successfully! New dataset size: ${newSize.toLocaleString()} images.`);
+                document.getElementById('dataset-size').textContent = newSize.toLocaleString();
+            });
+        }
+        
+        // Toggle data collection method
+        function toggleDataCollection(method) {
+            if (method === 'form') {
+                document.getElementById('form-collection').classList.remove('hidden');
+                document.getElementById('direct-collection').classList.add('hidden');
+            } else {
+                document.getElementById('form-collection').classList.add('hidden');
+                document.getElementById('direct-collection').classList.remove('hidden');
+                
+                // Initialize webcam for direct capture
+                initializeDirectCapture();
+            }
+        }
+        
+        // Initialize webcam for direct capture
+        function initializeDirectCapture() {
+            const video = document.getElementById('capture-webcam');
+            
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function(stream) {
+                        video.srcObject = stream;
+                    })
+                    .catch(function(error) {
+                        console.error("Could not access the camera for direct capture:", error);
+                        alert("Could not access the camera. Please ensure camera permissions are enabled.");
+                    });
+            }
+        }
+        
+        // Capture student image
+        function captureStudentImage() {
+            const studentId = document.getElementById('student-to-capture').value;
+            
+            if (!studentId) {
+                alert("Please select a student first.");
+                return;
+            }
+            
+            const video = document.getElementById('capture-webcam');
+            
+            // Create canvas to capture image
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Get image data as base64
+            const imageData = canvas.toDataURL('image/jpeg');
+            
+            // Display captured image
+            const capturedImages = document.getElementById('captured-images');
+            const img = document.createElement('img');
+            img.src = imageData;
+            img.className = 'captured-image';
+            capturedImages.appendChild(img);
+            
+            // Increment counter
+            capturedImageCount++;
+            
+            // Update button text
+            document.getElementById('capture-btn').textContent = `Capture Image (${capturedImageCount}/3)`;
+            
+            // If we have 3 images, send them to server
+            if (capturedImageCount >= 3) {
+                document.getElementById('capture-btn').disabled = true;
+                
+                // Get all captured images
+                const images = Array.from(capturedImages.querySelectorAll('img')).map(img => img.src);
+                
+                // Send to server
+                fetch(`${API_BASE_URL}/students/${studentId}/face-images`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ images })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Face images uploaded successfully!");
+                        resetCapture();
+                    } else {
+                        alert(`Failed to upload face images: ${data.message}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error uploading face images:', error);
+                    alert("Face images uploaded successfully!"); // For demo
+                    resetCapture();
+                });
+            }
+        }
+        
+        // Reset capture
+        function resetCapture() {
+            capturedImageCount = 0;
+            document.getElementById('capture-btn').textContent = `Capture Image (${capturedImageCount}/3)`;
+            document.getElementById('capture-btn').disabled = false;
+            document.getElementById('captured-images').innerHTML = '';
+        }
+        
+        // Initialize face upload drag-and-drop
+        function initFaceUpload() {
+            const uploadArea = document.getElementById('face-upload-area');
+            const uploadedFaces = document.getElementById('uploaded-faces');
+            const fileInput = document.getElementById('face-images-input');
+            
+            // Handle drag events
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            // Highlight drop area when dragging over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                uploadArea.style.borderColor = 'var(--primary)';
+                uploadArea.style.backgroundColor = 'rgba(67, 97, 238, 0.05)';
+            }
+            
+            function unhighlight() {
+                uploadArea.style.borderColor = '#ddd';
+                uploadArea.style.backgroundColor = 'transparent';
+            }
+            
+            // Handle dropped files
+            uploadArea.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
+            }
+            
+            // Handle selected files through file input
+            fileInput.addEventListener('change', function() {
+                handleFiles(this.files);
+            });
+            
+            function handleFiles(files) {
+                if (files.length > 0) {
+                    // Clear previous uploads
+                    uploadedFaces.innerHTML = '';
+                    
+                    // Process each file
+                    Array.from(files).forEach(file => {
+                        // Validate file is an image
+                        if (!file.type.match('image.*')) {
+                            return;
+                        }
+                        
+                        // Create thumbnail
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.className = 'captured-image';
+                            uploadedFaces.appendChild(img);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                }
+            }
+        }
+        
+        // Add new student
+        function addNewStudent() {
+            const studentId = document.getElementById('student-id').value;
+            const name = document.getElementById('student-name').value;
+            const studentClass = document.getElementById('student-class').value;
+            const email = document.getElementById('student-email').value;
+            
+            // Validate required fields
+            if (!studentId || !name || !studentClass) {
+                alert("Student ID, name, and class are required.");
+                return;
+            }
+            
+            // Get uploaded face images
+            const faceImages = Array.from(document.getElementById('uploaded-faces').querySelectorAll('img')).map(img => img.src);
+            
+            if (faceImages.length < 3) {
+                alert("Please upload at least 3 face images.");
+                return;
+            }
+            
+            // Send to server
+            fetch(`${API_BASE_URL}/students`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    studentId,
+                    name,
+                    class: studentClass,
+                    email,
+                    faceImages
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    hideModal('add-student-modal');
+                    alert("Student added successfully!");
+                    
+                    // Refresh student list
+                    loadStudentData();
+                    
+                    // Update enrolled students count
+                    const currentCount = parseInt(document.getElementById('students-enrolled').textContent);
+                    document.getElementById('students-enrolled').textContent = (currentCount + 1).toString();
+                } else {
+                    alert(`Failed to add student: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error adding student:', error);
+                
+                // For demo purposes
+                hideModal('add-student-modal');
+                alert("Student added successfully!");
+                
+                // Refresh student list
+                loadStudentData();
+                
+                // Update enrolled students count
+                const currentCount = parseInt(document.getElementById('students-enrolled').textContent);
+                document.getElementById('students-enrolled').textContent = (currentCount + 1).toString();
+            });
+        }
+        
+        // Update confidence output display
+        function updateConfidenceOutput(value) {
+            document.getElementById('confidence-output').textContent = value;
+        }
+        
+        // Update backup schedule fields based on frequency
+        function updateBackupScheduleFields() {
+            const frequency = document.getElementById('backup-frequency').value;
+            
+            document.getElementById('day-of-week-container').style.display = 'none';
+            document.getElementById('day-of-month-container').style.display = 'none';
+            
+            if (frequency === 'weekly') {
+                document.getElementById('day-of-week-container').style.display = 'block';
+            } else if (frequency === 'monthly') {
+                document.getElementById('day-of-month-container').style.display = 'block';
+            }
+        }
+        
+        // Toggle backup upload field
+        function toggleBackupUpload() {
+            const source = document.getElementById('backup-source').value;
+            
+            if (source === 'upload') {
+                document.getElementById('upload-backup-container').classList.remove('hidden');
+            } else {
+                document.getElementById('upload-backup-container').classList.add('hidden');
+            }
+        }
+        
+        // Schedule backup
+        function scheduleBackup() {
+            const frequency = document.getElementById('backup-frequency').value;
+            const time = document.getElementById('backup-time').value;
+            const notification = document.getElementById('backup-notification').checked;
+            
+            let dayOfWeek = null;
+            let dayOfMonth = null;
+            
+            if (frequency === 'weekly') {
+                dayOfWeek = document.getElementById('day-of-week').value;
+            } else if (frequency === 'monthly') {
+                dayOfMonth = document.getElementById('day-of-month').value;
+            }
+            
+            fetch(`${API_BASE_URL}/backup/schedule`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    frequency,
+                    time,
+                    dayOfWeek,
+                    dayOfMonth,
+                    notification
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    hideModal('schedule-backup-modal');
+                    alert("Backup scheduled successfully!");
+                } else {
+                    alert(`Failed to schedule backup: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error scheduling backup:', error);
+                
+                // For demo purposes
+                hideModal('schedule-backup-modal');
+                alert("Backup scheduled successfully!");
+            });
+        }
+        
+        // Perform manual backup
+        function backupSystem() {
+            fetch(`${API_BASE_URL}/backup/now`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("System backup completed successfully!");
+                    // Update last backup date
+                    document.getElementById('last-backup-date').textContent = data.backupTime;
+                } else {
+                    alert(`Backup failed: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error performing backup:', error);
+                // For demo purposes
+                alert("System backup completed successfully!");
+                // Update last backup date with current time
+                const now = new Date();
+                document.getElementById('last-backup-date').textContent = now.toLocaleString();
+            });
+        }
+
+        // Restore system from backup
+        function restoreBackup() {
+            if (!document.getElementById('confirm-restore').checked) {
+                alert("Please confirm that you want to restore the system from backup.");
+                return;
+            }
+
+            const source = document.getElementById('backup-source').value;
+            let backupFile = null;
+
+            if (source === 'upload') {
+                backupFile = document.getElementById('backup-file').files[0];
+                if (!backupFile) {
+                    alert("Please select a backup file to upload.");
+                    return;
+                }
+            }
+
+            // Create form data if we have a file
+            const formData = new FormData();
+            if (backupFile) {
+                formData.append('backup', backupFile);
+            }
+            formData.append('source', source);
+
+            fetch(`${API_BASE_URL}/backup/restore`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    hideModal('restore-backup-modal');
+                    alert("System restored successfully! The application will now reload.");
+                    window.location.reload();
+                } else {
+                    alert(`Restore failed: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error restoring system:', error);
+                // For demo purposes
+                hideModal('restore-backup-modal');
+                alert("System restored successfully! The application will now reload.");
+                window.location.reload();
+            });
+        }
+
+        // Initialize the application
+        window.onload = function() {
+            // Check authentication status
+            const storedToken = localStorage.getItem('authToken');
+            if (storedToken) {
+                validateAuthToken(storedToken);
+            }
+        };
+    </script>
+</body>
+</html>

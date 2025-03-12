@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceAttend - CNN-Based Facial Recognition Attendance System</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --success: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --danger: #ef476f;
+            --warning: #ffd166;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f0f2f5;
+            color: var(--dark);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo h1 {
+            font-size: 1.8rem;
+            margin: 0;
+        }
+        
+        .logo-icon {
+            font-size: 2rem;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 3fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .sidebar {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+        }
+        
+        .sidebar-menu li {
+            margin-bottom: 1rem;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0.8rem;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--dark);
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .main-content {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary);
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+        
+        .login-container {
+            max-width: 400px;
+            margin: 2rem auto;
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            font-size: 1rem;
+        }
+        
+        .webcam-container {
+            width: 100%;
+            height: 300px;
+            background-color: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        
+        #webcam-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .face-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+        
+        .face-box {
+            border: 2px solid var(--success);
+            width: 150px;
+            height: 150px;
+            border-radius: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(76, 201, 240, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(76, 201, 240, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(76, 201, 240, 0);
+            }
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 0.8rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+        }
+        
+        .tab.active {
+            border-bottom: 3px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .model-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+        
+        th, td {
+            padding: 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-present {
+            background-color: rgba(76, 201, 240, 0.2);
+            color: var(--success);
+        }
+        
+        .status-absent {
+            background-color: rgba(239, 71, 111, 0.2);
+            color: var(--danger);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 10px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background-color: #f0f2f5;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--success));
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 1rem auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .alert {
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .alert-danger {
+            background-color: rgba(239, 71, 111, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+        
+        .alert-success {
+            background-color: rgba(76, 201, 240, 0.2);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+        
+        .auth-loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="logo-icon">👤</span>
+                <h1>FaceAttend | CNN-Based Facial Recognition Attendance System</h1>
+            </div>
+        </header>
+        
+        <div id="login-view" class="login-container">
+            <h2 style="text-align: center; margin-bottom: 2rem;">Admin Login</h2>
+            
+            <div id="login-alert" class="alert alert-danger">
+                Invalid username or password. Please try again.
+            </div>
+            
+            <div id="login-success" class="alert alert-success">
+                Login successful! Redirecting to dashboard...
+            </div>
+            
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" class="form-control" placeholder="Enter your username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;" id="login-btn">
+                    Login
+                    <span id="login-spinner" class="auth-loading hidden"></span>
+                </button>
+            </form>
+            <p style="text-align: center; margin-top: 1.5rem;">
+                <a href="#" onclick="showAttendanceMode()">Go to Student Attendance Mode</a>
+            </p>
+        </div>
+        
+        <div id="attendance-view" class="hidden">
+            <div class="card">
+                <h2 style="margin-bottom: 1.5rem;">Student Attendance Mode</h2>
+                <div class="webcam-container">
+                    <video id="webcam-feed" autoplay playsinline></video>
+                    <div class="face-overlay">
+                        <div class="face-box"></div>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <div id="recognition-status" style="margin-bottom: 1rem; font-size: 1.2rem;">Waiting for face detection...</div>
+                    <button class="btn btn-primary" onclick="startFaceRecognition()">Start Recognition</button>
+                    <button class="btn btn-danger" onclick="showLoginView()" style="margin-left: 10px;">Back to Login</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="dashboard-view" class="hidden">
+            <div class="dashboard">
+                <div class="sidebar">
+                    <ul class="sidebar-menu">
+                        <li><a href="#" class="active" onclick="showDashboard()"><span>📊</span> Dashboard</a></li>
+                        <li><a href="#" onclick="showAttendanceRecords()"><span>📝</span> Attendance Records</a></li>
+                        <li><a href="#" onclick="showModelTraining()"><span>🧠</span> Model Training</a></li>
+                        <li><a href="#" onclick="showStudentManagement()"><span>👥</span> Student Management</a></li>
+                        <li><a href="#" onclick="showModelEvaluation()"><span>📈</span> Model Evaluation</a></li>
+                        <li><a href="#" onclick="showSystemSettings()"><span>⚙️</span> System Settings</a></li>
+                        <li><a href="#" onclick="logout()"><span>🚪</span> Logout</a></li>
+                    </ul>
+                </div>
+                
+                <div class="main-content">
+                    <div id="dashboard-content">
+                        <h2 class="card-header">Dashboard Overview</h2>
+                        
+                        <div class="model-stats">
+                            <div class="stat-card">
+                                <h3>95.8%</h3>
+                                <p>Model Accuracy</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>378</h3>
+                                <p>Students Enrolled</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>245</h3>
+                                <p>Present Today</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>3.2s</h3>
+                                <p>Avg. Recognition Time</p>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Today's Attendance Summary</h3>
+                            <div class="chart-container">
+                                <canvas id="attendanceChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="card">
+                            <h3 class="card-header">Recent Attendance</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Student ID</th>
+                                        <th>Name</th>
+                                        <th>Class</th>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-attendance-table">
+                                    <tr>
+                                        <td colspan="5" class="text-center">Loading recent attendance data...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Other dashboard sections remain the same -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modals remain the same -->
+    </div>
+    
+    <script>
+        // Global variables to store authentication state
+        let authToken = null;
+        let currentUser = null;
+        
+        // Check if user is already logged in (using stored token)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for token in localStorage
+            authToken = localStorage.getItem('authToken');
+            if (authToken) {
+                // Validate token with server
+                validateAuthToken(authToken);
+            }
+            
+            // Initialize charts
+            initializeCharts();
+        });
+        
+        // Backend API URLs
+        const API_BASE_URL = 'https://api.faceattend.example.com/api/v1'; // Replace with your actual API URL
+        
+        // Handle login form submission
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            // Hide any existing alerts
+            document.getElementById('login-alert').style.display = 'none';
+            document.getElementById('login-success').style.display = 'none';
+            
+            // Show loading spinner
+            const loginBtn = document.getElementById('login-btn');
+            const loginSpinner = document.getElementById('login-spinner');
+            loginBtn.disabled = true;
+            loginSpinner.classList.remove('hidden');
+            
+            // Get form data
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Make API call to authenticate
+            authenticateUser(username, password)
+                .then(response => {
+                    if (response.success) {
+                        // Store auth token
+                        authToken = response.token;
+                        currentUser = response.user;
+                        
+                        // Save token to localStorage for persistence
+                        localStorage.setItem('authToken', authToken);
+                        
+                        // Show success message
+                        document.getElementById('login-success').style.display = 'block';
+                        
+                        // Load dashboard data
+                        loadDashboardData();
+                        
+                        // Redirect to dashboard after a short delay
+                        setTimeout(() => {
+                            document.getElementById('login-view').classList.add('hidden');
+                            document.getElementById('dashboard-view').classList.remove('hidden');
+                            
+                            // Reset login form
+                            document.getElementById('login-form').reset();
+                        }, 1500);
+                    } else {
+                        // Show error message
+                        document.getElementById('login-alert').textContent = response.message || 'Authentication failed. Please try again.';
+                        document.getElementById('login-alert').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Login error:', error);
+                    document.getElementById('login-alert').textContent = 'Server error. Please try again later.';
+                    document.getElementById('login-alert').style.display = 'block';
+                })
+                .finally(() => {
+                    // Hide loading spinner
+                    loginBtn.disabled = false;
+                    loginSpinner.classList.add('hidden');
+                });
+        }
+        
+        // Authenticate user with backend
+        async function authenticateUser(username, password) {
+            try {
+                // For development/demo purposes - simulate API call
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    return simulateAuthAPI(username, password);
+                }
+                
+                // Real API call
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Authentication error:', error);
+                throw new Error('Failed to connect to authentication server');
+            }
+        }
+        
+        // Simulate auth API for development/demo
+        function simulateAuthAPI(username, password) {
+            return new Promise((resolve) => {
+                // Simulate network delay
+                setTimeout(() => {
+                    // Demo credentials check
+                    if (username === 'admin' && password === 'password123') {
+                        resolve({
+                            success: true,
+                            token: 'demo-jwt-token-xyz-123',
+                            user: {
+                                id: 1,
+                                username: 'admin',
+                                name: 'Admin User',
+                                role: 'administrator',
+                                email: 'admin@example.com'
+                            }
+                        });
+                    } else {
+                        resolve({
+                            success: false,
+                            message: 'Invalid username or password'
+                        });
+                    }
+                }, 1000);
+            });
+        }
+        
+        // Validate stored auth token
+        async function validateAuthToken(token) {
+            try {
+                // For development/demo purposes
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    return simulateTokenValidation(token);
+                }
+                
+                // Real API call
+                const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.valid) {
+                    currentUser = data.user;
+                    // Show dashboard
+                    document.getElementById('login-view').classList.add('hidden');
+                    document.getElementById('dashboard-view').classList.remove('hidden');
+                    // Load dashboard data
+                    loadDashboardData();
+                } else {
+                    // Token invalid, clear it
+                    localStorage.removeItem('authToken');
+                    authToken = null;
+                    currentUser = null;
+                }
+            } catch (error) {
+                console.error('Token validation error:', error);
+                // On error, clear token and stay on login page
+                localStorage.removeItem('authToken');
+                authToken = null;
+                currentUser = null;
+            }
+        }
+        
+        // Simulate token validation for development/demo
+        function simulateTokenValidation(token) {
+            return new Promise((resolve) => {
+                // Simulate network delay
+                setTimeout(() => {
+                    // Demo token validation
+                    if (token === 'demo-jwt-token-xyz-123') {
+                        currentUser = {
+                            id: 1,
+                            username: 'admin',
+                            name: 'Admin User',
+                            role: 'administrator',
+                            email: 'admin@example.com'
+                        };
+                        // Show dashboard
+                        document.getElementById('login-view').classList.add('hidden');
+                        document.getElementById('dashboard-view').classList.remove('hidden');
+                        // Load dashboard data
+                        loadDashboardData();
+                        
+                        resolve({
+                            valid: true,
+                            user: currentUser
+                        });
+                    } else {
+                        // Token invalid, clear it
+                        localStorage.removeItem('authToken');
+                        authToken = null;
+                        currentUser = null;
+                        
+                        resolve({
+                            valid: false
+                        });
+                    }
+                }, 500);
+            });
+        }
+        
+        // Logout function
+        function logout() {
+            // For a real app, you might want to invalidate the token on the server
+            
+            // Clear auth state
+            localStorage.removeItem('authToken');
+            authToken = null;
+            currentUser = null;
+            
+            // Redirect to login
+            document.getElementById('dashboard-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+        }
+        
+        // Load dashboard data from API
+        async function loadDashboardData() {
+            if (!authToken) {
+                console.error('Cannot load dashboard: No authentication token');
+                return;
+            }
+            
+            try {
+                // Load recent attendance data
+                loadRecentAttendance();
+                
+                // Load model stats
+                loadModelStats();
+                
+                // Update charts
+                updateDashboardCharts();
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+        
+        // Load recent attendance data
+        async function loadRecentAttendance() {
+            try {
+                // For development/demo
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    return simulateRecentAttendanceData();
+                }
+                
+                // Real API call
+                const response = await fetch(`${API_BASE_URL}/attendance/recent`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateAttendanceTable(data.attendance);
+                }
+            } catch (error) {
+                console.error('Error loading recent attendance:', error);
+            }
+        }
+        
+        // Simulate recent attendance data for development/demo
+        function simulateRecentAttendanceData() {
+            const demoData = [
+                {
+                    studentId: 'STD0012',
+                    name: 'John Smith',
+                    class: 'CSE-A',
+                    time: '08:45 AM',
+                    status: 'present'
+                },
+                {
+                    studentId: 'STD0024',
+                    name: 'Emily Johnson',
+                    class: 'CSE-B',
+                    time: '08:52 AM',
+                    status: 'present'
+                },
+                {
+                    studentId: 'STD0036',
+                    name: 'Michael Brown',
+                    class: 'CSE-A',
+                    time: '09:01 AM',
+                    status: 'present'
+                },
+                {
+                    studentId: 'STD0048',
+                    name: 'Sarah Davis',
+                    class: 'CSE-C',
+                    time: '-',
+                    status: 'absent'
+                },
+                {
+                    studentId: 'STD0059',
+                    name: 'Robert Wilson',
+                    class: 'CSE-B',
+                    time: '09:12 AM',
+                    status: 'present'
+                }
+            ];
+            
+            // Update table with demo data
+            updateAttendanceTable(demoData);
+            
+            return Promise.resolve({ success: true, attendance: demoData });
+        }
+        
+        // Update attendance table with data
+        function updateAttendanceTable(attendanceData) {
+            const tableBody = document.getElementById('recent-attendance-table');
+            
+            if (!attendanceData || attendanceData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No attendance records found.</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            
+            attendanceData.forEach(record => {
+                html += `
+                <tr>
+                    <td>${record.studentId}</td>
+                    <td>${record.name}</td>
+                    <td>${record.class}</td>
+                    <td>${record.time}</td>
+                    <td><span class="status-badge status-${record.status}">${record.status === 'present' ? 'Present' : 'Absent'}</span></td>
+                </tr>
+                `;
+            });
+            
+            tableBody.innerHTML = html;
+        }
+        
+        // Load model stats
+        async function loadModelStats() {
+            try {
+                // For development/demo
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    return simulateModelStats();
+                }
+                
+                // Real API call
+                const response = await fetch(`${API_BASE_URL}/model/stats`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateModelStatsDisplay(data.stats);
+                }
+            } catch (error) {
+                console.error('Error loading model stats:', error);
+            }
+        }
+        
+        // Simulate model stats for development/demo
+        function simulateModelStats() {
+            const demoStats = {
+                accuracy: 95.8,
+                studentsEnrolled: 378,
+                presentToday: 245,
+                avgRecognitionTime: 3.2
+            };
+            
+            // Update stats display
+            updateModelStatsDisplay(demoStats);
+            
+            return Promise.resolve({ success: true, stats: demoStats });
+        }
+        
+        // Update model stats display
+        function updateModelStatsDisplay(stats) {
+            const statElements = document.querySelectorAll('.model-stats .stat-card h3');
+            
+            if (statElements.length >= 4 && stats) {
+                statElements[0].textContent = `${stats.accuracy}%`;
+                statElements[1].textContent = stats.studentsEnrolled;
+                statElements[2].textContent = stats.presentToday;
+                statElements[3].textContent = `${stats.avgRecognitionTime}s`;
+            }
+        }
+        
+        // Initialize dashboard charts
+        function initializeCharts() {
+            // This would be replaced with actual chart.js initialization
+            // For now, we'll just use placeholder charts
+        }
+        
+        // Update dashboard charts with actual data
+        function updateDashboardCharts() {
+            // This would update the charts with real data from API
+            // For demonstration purposes, we're using placeholders
+        }
+        
+        // Show attendance mode
+        function showAttendanceMode() {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('attendance-view').classList.remove('hidden');
+            
+            // Initialize webcam
+            const video = document.getElementById('webcam-feed');
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function(stream) {
+                        video.srcObject = stream;
+                    })
+                    .catch(function(error) {
+                        console.error("Could not access the camera: ", error);
+                    });
+            }
+        }
+        
+        // Go back to login view
+        function showLoginView() {
+            document.getElementById('attendance-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+            
+            // Stop webcam
+            const video = document.getElementById('webcam-feed');
+            if (video.srcObject) {
+                const tracks = video.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+            }
+        }
+        
+        // Simulate face recognition
+        function startFaceRecognition() {
+            const status = document.getElementById('recognition-status');
+            status.textContent = "Detecting face...";
+            
+            setTimeout(() => {
+                status.textContent = "Face detected, recognizing...";
+                
+                setTimeout(() => {
+                    status.textContent = "✅ Attendance marked for John Smith (STD0012)";
+                }, 2000);
+            }, 1500);
+        }
+        
+        // Navigation functions - these remain similar to before
+        function showDashboard() {
+            // Only allow if authenticated
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            hideAllContent();
+            document.getElementById('dashboard-content').classList.remove('hidden');
+            setActiveLink('Dashboard');
+            
+            // Refresh dashboard data
+            loadDashboardData();
+        }
+        
+        function showAttendanceRecords() {
+            // Authentication check
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            hideAllContent();
+            document.getElementById('attendance-records-content').classList.remove('hidden');
+            setActiveLink('Attendance Records');
+            
+            // Load attendance records
+            // loadAttendanceRecords(); // This would be implemented to fetch from API
+        }
+        
+        function showModelTraining() {
+            // Authentication check
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            hideAllContent();
+            document.getElementById('model-training-content').classList.remove('hidden');
+            setActiveLink('Model Training');
+        }
+        
+        function showStudentManagement() {
+            // Authentication check
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            hideAllContent();
+            document.getElementById('student-management-content').classList.remove('hidden');
+            setActiveLink('Student Management');
+        }
+        
+        function showModelEvaluation() {
+            // Authentication check
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            hideAllContent();
+            document.getElementById('model-evaluation-content').classList.remove('hidden');
+            setActiveLink('Model Evaluation');
+        }
+        
+        function showSystemSettings() {
+            // Authentication check
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            hideAllContent();
+            document.getElementById('system-settings-content').classList.remove('hidden');
+            setActiveLink('System Settings');
+        }
+        
+        // Helper function to hide all content sections
+        function hideAllContent() {
+            const contentElements = document.querySelectorAll('.main-content > div');
+            contentElements.forEach(element => {
+                element.classList.add('hidden');
+            });
+        }
+        
+        // Set active link in sidebar
+        function setActiveLink(linkText) {
+            const sidebarLinks = document.querySelectorAll('.sidebar-menu a');
+            sidebarLinks.forEach(link => {
+                if (link.textContent.includes(linkText)) {
+                    link.classList.add('active');
+                } else {
+                    link.classList.remove('active');
+                }
+            });
+        }
+        
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+        
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Switch tabs
+        function switchTab(tabId) {
+            // Hide all tab content
+            document.getElementById('basic-config').classList.add('hidden');
+            document.getElementById('advanced-config').classList.add('hidden');
+            
+            // Show selected tab content
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            // Update tab styling
+            document.querySelectorAll('.tab').forEach(tab => {
+                if (tab.textContent.includes('Basic') && tabId === 'basic-config') {
+                    tab.classList.add('active');
+                } else if (tab.textContent.includes('Advanced') && tabId === 'advanced-config') {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+        }
+        
+        // Start model training with backend integration
+        async function startTraining() {
+            // Authentication check
+            if (!authToken) {
+                console.error('Authentication required');
+                return;
+            }
+            
+            showModal('training-modal');
+            
+            // Get training configuration
+            const trainingConfig = {
+                batchSize: parseInt(document.getElementById('batch-size').value),
+                epochs: parseInt(document.getElementById('epochs').value),
+                learningRate: parseFloat(document.getElementById('learning-rate').value),
+                validationSplit: parseFloat(document.getElementById('validation-split').value),
+                optimizer: document.getElementById('optimizer')?.value || 'adam',
+                activation: document.getElementById('activation')?.value || 'relu',
+                dropoutRate: parseFloat(document.getElementById('dropout-rate')?.value || '0.5'),
+                convLayers: parseInt(document.getElementById('conv-layers')?.value || '5')
+            };
+            
+            try {
+                // For development/demo
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    simulateTraining();
+                    return;
+                }
+                
+                // Start training on backend
+                const response = await fetch(`${API_BASE_URL}/model/train`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(trainingConfig)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Poll for training progress
+                    const trainingTaskId = data.taskId;
+                    pollTrainingProgress(trainingTaskId);
+                } else {
+                    console.error('Failed to start training:', data.message);
+                    hideModal('training-modal');
+                    alert('Training failed to start: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error starting training:', error);
+                hideModal('training-modal');
+                alert('Error starting training. Please try again.');
+            }
+        }
+        
+        // Poll for training progress
+        async function pollTrainingProgress(taskId) {
+            const progressBar = document.getElementById('training-progress');
+            const status = document.getElementById('training-status');
+            const timeRemaining = document.getElementById('time-remaining');
+            
+            let completed = false;
+            
+            while (!completed) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/model/training-status/${taskId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Update progress
+                        progressBar.style.width = `${data.progress}%`;
+                        status.textContent = data.status;
+                        timeRemaining.textContent = data.timeRemaining;
+                        
+                        if (data.completed) {
+                            completed = true;
+                            
+                            // Show completion message
+                            status.textContent = "Training completed successfully!";
+                            timeRemaining.textContent = "0 minutes";
+                            
+                            // Close modal after delay
+                            setTimeout(() => {
+                                hideModal('training-modal');
+                                // Refresh model stats
+                                loadModelStats();
+                            }, 2000);
+                        }
+                    } else {
+                        console.error('Failed to get training status:', data.message);
+                        break;
+                    }
+                } catch (error) {
+                    console.error('Error checking training status:', error);
+                    break;
+                }
+                
+                // Wait before next poll
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+        
+        // Simulate training progress for development/demo
+        function simulateTraining() {
+            let progress = 0;
+            const progressBar = document.getElementById('training-progress');
+            const status = document.getElementById('training-status');
+            const timeRemaining = document.getElementById('time-remaining');
+            
+            const interval = setInterval(() => {
+                progress += 5;
+                progressBar.style.width = `${progress}%`;
+                
+                if (progress < 30) {
+                    status.textContent = "Preprocessing images...";
+                    timeRemaining.textContent = "45 minutes";
+                } else if (progress < 60) {
+                    status.textContent = "Training CNN model (Epoch " + Math.floor((progress-30)/3) + "/10)...";
+                    timeRemaining.textContent = "30 minutes";
+                } else if (progress < 90) {
+                    status.textContent = "Optimizing model parameters...";
+                    timeRemaining.textContent = "15 minutes";
+                } else {
+                    status.textContent = "Finalizing and saving model...";
+                    timeRemaining.textContent = "5 minutes";
+                }
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    status.textContent = "Training completed successfully!";
+                    timeRemaining.textContent = "0 minutes";
+                    
+                    setTimeout(() => {
+                        hideModal('training-modal');
+                        // Refresh model stats
+                        loadModelStats();
+                    }, 2000);
+                }
+            }, 500);
+        }
+    </script>
+</body>
+</html>
